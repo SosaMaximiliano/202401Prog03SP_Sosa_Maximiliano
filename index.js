@@ -196,6 +196,7 @@ function traerKeys(listado) {
 
 //CREAR Y ACTUALIZA TABLA DINAMICA. RECIBE LISTADO
 function crearTabla(listado) {
+  limpiarEventos();
   //LIMPIAR TABLA
   let tablaExiste = document.querySelector("#formTabla");
   let btnExiste = document.querySelector("#btnAgregar");
@@ -411,8 +412,8 @@ function limpiarEventos() {
   const abmCancelar = $("abmCancelar");
 
   if (abmAceptar) {
-    abmAceptar.removeEventListener("click", abmAlta);
-    abmAceptar.removeEventListener("click", abmModificacion);
+    abmAceptar.removeEventListener("click", abmAltaAsync);
+    abmAceptar.removeEventListener("click", abmModificacionPromesas);
     abmAceptar.removeEventListener("click", abmBaja);
   }
 
@@ -588,8 +589,8 @@ function abmAltaHttp() {
 
 //ABM ALTA ASYNC
 async function abmAltaAsync() {
-  mostrarSpinner();
   limpiarEventos();
+  mostrarSpinner();
 
   let nombre = $("abm-nombre").value;
   let apellido = $("abm-apellido").value;
@@ -731,6 +732,7 @@ async function abmModificacion() {
 
 //ABM MODIFICACION PROMESAS
 function abmModificacionPromesas() {
+  limpiarEventos();
   mostrarSpinner();
   let id = parseInt($("abm-id").value);
   let nombre = $("abm-nombre").value;
@@ -795,6 +797,7 @@ function abmModificacionPromesas() {
 
 //ABM BAJA
 function abmBaja() {
+  limpiarEventos();
   mostrarSpinner();
 
   let idElemento = $("abm-id").value;
@@ -821,6 +824,7 @@ function abmBaja() {
           (persona) => persona.id === idElementoNum
         );
         listado.splice(index, 1);
+        alert("Elemento eliminado correctamente");
         crearTabla(listado);
         ocultarDivAbm();
         mostrarDivTabla();
