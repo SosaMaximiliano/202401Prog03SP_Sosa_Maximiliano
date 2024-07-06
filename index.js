@@ -1,78 +1,47 @@
 const $ = (e) => document.getElementById(e);
 const q = (e) => document.querySelectorAll(e);
 const c = (e) => document.getElementsByClassName(e);
-const url = "http://127.0.0.1/PersonasEmpleadosClientes.php";
+const url = "https://examenesutn.vercel.app/api/PersonaCiudadanoExtranjero";
 let objetos = [];
 let listado = [];
 
 class Persona {
-  constructor(id, nombre, apellido, edad) {
+  constructor(id, nombre, apellido, fechaNacimiento) {
     this.id = id;
     this.nombre = nombre;
     this.apellido = apellido;
-    this.edad = edad;
+    this.fechaNacimiento = fechaNacimiento;
   }
 
   toString() {
-    return `ID: ${this.id}, Nombre: ${this.nombre}, Apellido: ${this.apellido}, Edad: ${this.edad}`;
-  }
-
-  toJson() {
-    return JSON.stringify({
-      id: this.id,
-      nombre: this.nombre,
-      apellido: this.apellido,
-      edad: this.edad,
-    });
+    return `ID: ${this.id}, Nombre: ${this.nombre}, Apellido: ${this.apellido}, Fecha de nacimiento: ${this.fechaNacimiento}`;
   }
 }
 
-class Empleado extends Persona {
-  constructor(id, nombre, apellido, edad, sueldo, ventas) {
-    super(id, nombre, apellido, edad);
-    this.sueldo = sueldo;
-    this.ventas = ventas;
+class Ciudadano extends Persona {
+  constructor(id, nombre, apellido, fechaNacimiento, dni) {
+    super(id, nombre, apellido, fechaNacimiento);
+    this.dni = dni;
   }
 
   toString() {
-    return `${super.toString()}, Sueldo: ${this.sueldo}, Ventas: ${
-      this.ventas
-    }`;
-  }
-
-  toJson() {
-    return JSON.stringify({
-      ...JSON.parse(super.toJson()),
-      sueldo: this.sueldo,
-      ventas: this.ventas,
-    });
+    return `${super.toString()}, DNI: ${this.dni}`;
   }
 }
 
-class Cliente extends Persona {
-  constructor(id, nombre, apellido, edad, telefono, compras) {
-    super(id, nombre, apellido, edad);
-    this.telefono = telefono;
-    this.compras = compras;
+class Extranjero extends Persona {
+  constructor(id, nombre, apellido, fechaNacimiento, paisOrigen) {
+    super(id, nombre, apellido, fechaNacimiento);
+    this.paisOrigen = paisOrigen;
   }
 
   toString() {
-    return `${super.toString()}, Sueldo: ${this.telefono}, Ventas: ${
-      this.compras
-    }`;
-  }
-
-  toJson() {
-    return JSON.stringify({
-      ...JSON.parse(super.toJson()),
-      telefono: this.telefono,
-      compras: this.compras,
-    });
+    return `${super.toString()}, Pais de origen: ${this.paisOrigen}`;
   }
 }
 
 //PUNTO 3
-//UTILIZANDO HTTP REQUEST
+//CARGA INICIAL HTTP REQUEST
 function cargaInicial() {
   mostrarSpinner();
   let http = new XMLHttpRequest();
@@ -99,17 +68,80 @@ function cargaInicial() {
   http.send();
 }
 
-//INSTACIA LOS OBJETOS DE UN LISTADO (NO SE USA)
+//CARGA INICIAL FETCH
+function cargaInicialFetch() {
+  mostrarSpinner();
+
+  fetch(url)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Error de conexión");
+      }
+      return response.json();
+    })
+    .then((datos) => {
+      console.log("OK");
+      datos.forEach((e) => {
+        let o = instanciarUnObjeto(e);
+        listado.push(o);
+      });
+
+      crearTabla(listado);
+      crearFormularioAbm();
+    })
+    .catch((error) => {
+      console.error("Hubo un problema con la solicitud fetch:", error);
+      alert("Error al cargar la tabla");
+    })
+    .finally(() => {
+      cargarEventos();
+      ocultarSpinner();
+    });
+}
+
+//CARGA INICIAL ASYNC
+async function cargaInicialAsync() {
+  mostrarSpinner();
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+    const datos = await response.json();
+    console.log("Datos recibidos:", datos); // Verificar datos recibidos
+    datos.forEach((e) => {
+      let o = instanciarUnObjeto(e);
+      listado.push(o);
+    });
+
+    crearTabla(listado);
+    crearFormularioAbm();
+  } catch (error) {
+    console.error("Hubo un problema con la solicitud fetch:", error);
+    alert("Error al cargar la tabla");
+  } finally {
+    cargarEventos();
+    ocultarSpinner();
+  }
+}
+
+//INSTANCIA LOS OBJETOS DE UN LISTADO (NO SE USA)
 function instanciarObjetos(listado) {
   let listadoAux = [];
   listado.forEach((e) => {
-    if (e.ventas) {
+    if (e.dni) {
       listadoAux.push(
-        new Empleado(e.id, e.nombre, e.apellido, e.edad, e.sueldo, e.ventas)
+        new Ciudadano(e.id, e.nombre, e.apellido, e.fechaNacimiento, e.dni)
       );
     } else
       listadoAux.push(
-        new Cliente(e.id, e.nombre, e.apellido, e.edad, e.telefono, e.compras)
+        new Extranjero(
+          e.id,
+          e.nombre,
+          e.apellido,
+          e.fechaNacimiento,
+          e.paisOrigen
+        )
       );
   });
   return listadoAux;
@@ -119,23 +151,21 @@ function instanciarObjetos(listado) {
 function instanciarUnObjeto(objeto) {
   let nuevoObjeto;
 
-  if (objeto.ventas) {
-    nuevoObjeto = new Empleado(
+  if (objeto.dni) {
+    nuevoObjeto = new Ciudadano(
       objeto.id,
       objeto.nombre,
       objeto.apellido,
-      objeto.edad,
-      objeto.sueldo,
-      objeto.ventas
+      objeto.fechaNacimiento,
+      objeto.dni
     );
   } else
-    nuevoObjeto = new Cliente(
+    nuevoObjeto = new Extranjero(
       objeto.id,
       objeto.nombre,
       objeto.apellido,
-      objeto.edad,
-      objeto.telefono,
-      objeto.compras
+      objeto.fechaNacimiento,
+      objeto.paisOrigen
     );
 
   return nuevoObjeto;
@@ -314,34 +344,24 @@ function ocultarSpinner() {
   $("spinner-overlay").style.display = "none";
 }
 
-//MUESTRA U OCULTA LOS CAMPOS DE CLIENTE O EMPLEADO
-function mostrarCamposCliente() {
-  $("lbl-abm-sueldo").style.display = "none";
-  $("lbl-abm-ventas").style.display = "none";
-  $("abm-sueldo").style.display = "none";
-  $("abm-ventas").style.display = "none";
+//MUESTRA U OCULTA LOS CAMPOS DE Extranjero O Ciudadano
+function mostrarCamposExtranjero() {
+  $("lbl-abm-dni").style.display = "none";
+  $("abm-dni").style.display = "none";
 
-  $("lbl-abm-compras").style.display = "";
-  $("lbl-abm-telefono").style.display = "";
-  $("abm-compras").style.display = "";
-  $("abm-telefono").style.display = "";
+  $("lbl-abm-paisOrigen").style.display = "";
+  $("abm-paisOrigen").style.display = "";
 
-  $("abm-compras").value = "";
-  $("abm-telefono").value = "";
+  $("abm-paisOrigen").value = "";
 }
-function mostrarCamposEmpleado() {
-  $("lbl-abm-compras").style.display = "none";
-  $("lbl-abm-telefono").style.display = "none";
-  $("abm-compras").style.display = "none";
-  $("abm-telefono").style.display = "none";
+function mostrarCamposCiudadano() {
+  $("lbl-abm-paisOrigen").style.display = "none";
+  $("abm-paisOrigen").style.display = "none";
 
-  $("lbl-abm-sueldo").style.display = "";
-  $("lbl-abm-ventas").style.display = "";
-  $("abm-sueldo").style.display = "";
-  $("abm-ventas").style.display = "";
+  $("lbl-abm-dni").style.display = "";
+  $("abm-dni").style.display = "";
 
-  $("abm-sueldo").value = "";
-  $("abm-ventas").value = "";
+  $("abm-dni").value = "";
 }
 
 //FUNCION PARA CARGAR ABM CON LOS CAMPOS DE LA FILA
@@ -360,75 +380,117 @@ function validarPersona(objeto) {
     objeto.nombre.trim() !== "" &&
     typeof objeto.apellido === "string" &&
     objeto.apellido.trim() !== "" &&
-    objeto.edad > 15
+    typeof objeto.fechaNacimiento === "number"
   )
     return true;
   return false;
 }
 
-function validarCliente(objeto) {
+function validarExtranjero(objeto) {
   if (
     validarPersona(objeto) &&
-    typeof objeto.compras === "number" &&
-    objeto.compras > 0 &&
-    typeof objeto.telefono === "string" &&
-    objeto.telefono.trim() !== ""
+    typeof objeto.paisOrigen === "string" &&
+    objeto.paisOrigen.trim() !== ""
   )
     return true;
   return false;
 }
 
-function validarEmpleado(objeto) {
+function validarCiudadano(objeto) {
   if (
     validarPersona(objeto) &&
-    typeof objeto.sueldo === "number" &&
-    objeto.sueldo > 0 &&
-    typeof objeto.ventas === "number" &&
-    objeto.ventas > 0
+    typeof objeto.dni === "number" &&
+    objeto.dni > 0
   )
     return true;
   return false;
+}
+
+function limpiarEventos() {
+  const abmAceptar = $("abmAceptar");
+  const abmCancelar = $("abmCancelar");
+
+  if (abmAceptar) {
+    abmAceptar.removeEventListener("click", abmAlta);
+    abmAceptar.removeEventListener("click", abmModificacion);
+    abmAceptar.removeEventListener("click", abmBaja);
+  }
+
+  if (abmCancelar) {
+    abmCancelar.removeEventListener("click", ocultarDivAbm);
+  }
+}
+
+function crearSelect() {
+  // Crear el select para "Ciudadano" y "Extranjero"
+  if (!$("abm-tipo")) {
+    let divOption = $("divOption");
+    let labelTipo = document.createElement("label");
+    let selectTipo = document.createElement("select");
+    let optionCiudadano = document.createElement("option");
+    let optionExtranjero = document.createElement("option");
+
+    divOption.appendChild(labelTipo);
+    divOption.appendChild(selectTipo);
+
+    labelTipo.innerText = "Tipo: ";
+    selectTipo.setAttribute("id", "abm-tipo");
+
+    optionCiudadano.value = "Ciudadano";
+    optionCiudadano.innerText = "Ciudadano";
+
+    optionExtranjero.value = "Extranjero";
+    optionExtranjero.innerText = "Extranjero";
+
+    selectTipo.appendChild(optionCiudadano);
+    selectTipo.appendChild(optionExtranjero);
+
+    // Añadir evento para mostrar campos específicos
+    selectTipo.addEventListener("change", function () {
+      if (selectTipo.value === "Ciudadano") {
+        mostrarCamposCiudadano();
+      } else {
+        mostrarCamposExtranjero();
+      }
+    });
+    // $("divFormAbm").insertBefore(selectTipo, divFormAbm.firstChild);
+    $("divFormAbm").prepend(divOption);
+    // $("divFormAbm").insertBefore(labelTipo, selectTipo);
+  }
 }
 
 //ALTA ABM
 function abmAlta() {
   mostrarSpinner();
   let objeto;
-  let id = parseInt($("abm-id").value);
   let nombre = $("abm-nombre").value;
   let apellido = $("abm-apellido").value;
-  let edad = parseInt($("abm-edad").value);
-  let sueldo = parseFloat($("abm-sueldo").value);
-  let ventas = parseInt($("abm-ventas").value);
-  let compras = parseInt($("abm-compras").value);
-  let telefono = $("abm-telefono").value;
+  let fechaNacimiento = parseInt($("abm-fechaNacimiento").value);
+  let dni = parseFloat($("abm-dni").value);
+  let paisOrigen = $("abm-paisOrigen").value;
 
-  if (compras !== "" && telefono.trim() !== "") {
+  if (paisOrigen.trim() !== "") {
     objeto = {
-      id: id,
       nombre: nombre,
       apellido: apellido,
-      edad: edad,
-      compras: compras,
-      telefono: telefono,
+      fechaNacimiento: fechaNacimiento,
+      paisOrigen: paisOrigen,
     };
-  } else if (sueldo !== "" && ventas !== "") {
+  } else if (dni !== "") {
     objeto = {
-      id: id,
       nombre: nombre,
       apellido: apellido,
-      edad: edad,
-      sueldo: sueldo,
-      ventas: ventas,
+      fechaNacimiento: fechaNacimiento,
+      dni: dni,
     };
   } else {
     alert("Hay campos vacios");
     ocultarSpinner();
   }
 
-  if (validarCliente(objeto) || validarEmpleado(objeto)) {
+  if (validarExtranjero(objeto) || validarCiudadano(objeto)) {
     let opciones = {
-      method: "PUT",
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
@@ -467,6 +529,139 @@ function abmAlta() {
   }
 }
 
+//ABM ALTA HTTPREQUEST
+function abmAltaHttp() {
+  mostrarSpinner();
+  let objeto;
+  let nombre = $("abm-nombre").value;
+  let apellido = $("abm-apellido").value;
+  let fechaNacimiento = parseInt($("abm-fechaNacimiento").value);
+  let dni = parseFloat($("abm-dni").value);
+  let paisOrigen = $("abm-paisOrigen").value;
+
+  if (paisOrigen.trim() !== "") {
+    objeto = {
+      nombre: nombre,
+      apellido: apellido,
+      fechaNacimiento: fechaNacimiento,
+      paisOrigen: paisOrigen,
+    };
+  } else if (dni !== "") {
+    objeto = {
+      nombre: nombre,
+      apellido: apellido,
+      fechaNacimiento: fechaNacimiento,
+      dni: dni,
+    };
+  } else {
+    alert("Debe completar los campos de Extranjero o de Ciudadano.");
+    ocultarSpinner();
+    return;
+  }
+  let http = new XMLHttpRequest();
+  http.onreadystatechange = function () {
+    if (http.readyState == 4) {
+      if (http.status == 200) {
+        let response = JSON.parse(http.responseText);
+        console.log("Elemento agregado con éxito con ID:", response.id);
+        objeto.id = response.id;
+        console.log("OK");
+        objeto.id = response.id;
+        let nuevoObjeto = instanciarUnObjeto(objeto);
+        listado.push(nuevoObjeto);
+        ocultarSpinner();
+        crearTabla(listado);
+        ocultarDivAbm();
+        mostrarDivTabla();
+      } else {
+        console.log("FALLÓ");
+        alert("Error al cargar la tabla");
+        ocultarSpinner();
+      }
+    }
+  };
+
+  http.open("POST", url, true);
+  http.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+  http.send(JSON.stringify(objeto));
+}
+
+//ABM ALTA ASYNC
+async function abmAltaAsync() {
+  mostrarSpinner();
+
+  let nombre = $("abm-nombre").value;
+  let apellido = $("abm-apellido").value;
+  let fechaNacimiento = parseInt($("abm-fechaNacimiento").value);
+  let dni = parseFloat($("abm-dni").value);
+  let paisOrigen = $("abm-paisOrigen").value;
+
+  let objeto;
+  if (paisOrigen.trim() !== "") {
+    objeto = {
+      nombre: nombre,
+      apellido: apellido,
+      fechaNacimiento: fechaNacimiento,
+      paisOrigen: paisOrigen,
+    };
+  } else if (dni !== "") {
+    objeto = {
+      nombre: nombre,
+      apellido: apellido,
+      fechaNacimiento: fechaNacimiento,
+      dni: dni,
+    };
+  } else {
+    alert("Debe completar los campos de Extranjero o de Ciudadano.");
+    ocultarSpinner();
+    return;
+  }
+  if (validarCiudadano(objeto) || validarExtranjero(objeto)) {
+    let enviarSolicitud = () => {
+      return new Promise((r, e) => {
+        fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(objeto),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Error al cargar la tabla");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            r(data);
+          })
+          .catch((error) => {
+            e(error);
+          });
+      });
+    };
+
+    try {
+      let data = await enviarSolicitud();
+      alert("Elemento agregado con éxito");
+      objeto.id = data.id;
+      let nuevoObjeto = instanciarUnObjeto(objeto);
+      listado.push(nuevoObjeto);
+      crearTabla(listado);
+      ocultarDivAbm();
+      mostrarDivTabla();
+    } catch (error) {
+      alert("Error en la solicitud:", error);
+      console.log(error.message);
+    } finally {
+      ocultarSpinner();
+    }
+  } else {
+    alert("No se pudieron validar los campos");
+    ocultarSpinner();
+  }
+}
+
 //USA METODO PUT PORQUE POST NO CONECTA
 async function abmModificacion() {
   mostrarSpinner();
@@ -474,11 +669,9 @@ async function abmModificacion() {
     id: parseInt($("abm-id").value),
     nombre: $("abm-nombre").value,
     apellido: $("abm-apellido").value,
-    edad: parseInt($("abm-edad").value),
-    sueldo: parseFloat($("abm-sueldo").value),
-    ventas: parseInt($("abm-ventas").value),
-    compras: parseInt($("abm-compras").value),
-    telefono: $("abm-telefono").value,
+    fechaNacimiento: parseInt($("abm-fechaNacimiento").value),
+    dni: parseFloat($("abm-dni").value),
+    paisOrigen: $("abm-paisOrigen").value,
   };
 
   let opciones = {
@@ -492,7 +685,7 @@ async function abmModificacion() {
 
   let indice = listado.findIndex((e) => e.id == objeto.id);
   if (indice != -1) {
-    if (validarCliente(objeto) || validarEmpleado(objeto)) {
+    if (validarExtranjero(objeto) || validarCiudadano(objeto)) {
       try {
         const response = await fetch(url, opciones);
         if (!response.ok) {
@@ -536,151 +729,176 @@ async function abmModificacion() {
   }
 }
 
-//USA METODO GET PORQUE DELETE NO CONECTA
-async function abmBaja() {
+//ABM MODIFICACION PROMESAS
+function abmModificacionPromesas() {
   mostrarSpinner();
+  let id = parseInt($("abm-id").value);
+  let nombre = $("abm-nombre").value;
+  let apellido = $("abm-apellido").value;
+  let fechaNacimiento = parseInt($("abm-fechaNacimiento").value);
+  let dni = parseFloat($("abm-dni").value);
+  let paisOrigen = $("abm-paisOrigen").value;
 
-  let opciones = {
-    // method: "DELETE",
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  };
+  let objeto;
+  if (paisOrigen.trim() !== "") {
+    objeto = {
+      id: id,
+      nombre: nombre,
+      apellido: apellido,
+      fechaNacimiento: fechaNacimiento,
+      paisOrigen: paisOrigen,
+    };
+  } else if (dni !== "") {
+    objeto = {
+      id: id,
+      nombre: nombre,
+      apellido: apellido,
+      fechaNacimiento: fechaNacimiento,
+      dni: dni,
+    };
+  } else {
+    alert("Debe completar los campos de Extranjero o de Ciudadano.");
+    ocultarSpinner();
+    return;
+  }
 
-  let idABorrar = $("abm-id").value;
-  let indice = listado.findIndex((e) => e.id == idABorrar);
-  if (indice != -1) {
-    try {
-      const response = await fetch(url, opciones);
-      if (!response.ok) {
-        console.error(response.status, response.statusText);
+  return new Promise((resolve, reject) => {
+    if (validarCiudadano(objeto) || validarExtranjero(objeto)) {
+      let indice = listado.findIndex((e) => e.id === id);
+      if (indice !== -1) {
+        for (let key in objeto) {
+          if (objeto.hasOwnProperty(key)) {
+            listado[indice][key] = objeto[key];
+          }
+        }
         ocultarSpinner();
-        ocultarDivAbm();
-        mostrarDivTabla();
-        alert("No se pudo conectar");
-      } else {
-        listado.splice(indice, 1);
-        ocultarSpinner();
-        console.log("Eliminación exitosa");
-        alert("Registro eliminado correctamente.");
+        alert("Registro actualizado correctamente.");
+        resolve(listado[indice]);
         crearTabla(listado);
         ocultarDivAbm();
         mostrarDivTabla();
+      } else {
+        ocultarSpinner();
+        alert("El objeto no se encuentra en la lista");
+        resolve(false);
+        ocultarDivAbm();
+        mostrarDivTabla();
       }
-    } catch (error) {
+    } else {
       ocultarSpinner();
-      console.error(error);
-      alert("ELIMINAR - Error de red");
+      alert("Validación fallida");
+      reject(new Error("Validación fallida"));
       ocultarDivAbm();
       mostrarDivTabla();
     }
+  });
+}
+
+//ABM BAJA
+function abmBaja() {
+  mostrarSpinner();
+
+  let idElemento = $("abm-id").value;
+
+  if (!isNaN(idElemento)) {
+    fetch(url, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id: idElemento }),
+    })
+      .then((response) => {
+        ocultarSpinner();
+        if (response.ok) {
+          return response.text();
+        } else {
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+      })
+      .then((data) => {
+        let idElementoNum = parseInt(idElemento);
+        let index = listado.findIndex(
+          (persona) => persona.id === idElementoNum
+        );
+        listado.splice(index, 1);
+        crearTabla(listado);
+        ocultarDivAbm();
+        mostrarDivTabla();
+      })
+      .catch((error) => {
+        console.error("Error al eliminar elemento:", error);
+        ocultarSpinner();
+        ocultarDivAbm();
+        mostrarDivTabla();
+        alert("No se pudo realizar la operacion.");
+      });
   } else {
+    alert("ID no válido");
     ocultarSpinner();
-    alert("El objeto no se encuentra en la lista");
-  }
-}
-
-function limpiarEventos() {
-  abmAceptar.removeEventListener("click", abmAlta);
-  abmAceptar.removeEventListener("click", abmModificacion);
-  abmAceptar.removeEventListener("click", abmBaja);
-}
-
-function crearSelect() {
-  // Crear el select para "Empleado" y "Cliente"
-  if (!$("abm-tipo")) {
-    let divOption = $("divOption");
-    let labelTipo = document.createElement("label");
-    let selectTipo = document.createElement("select");
-    let optionEmpleado = document.createElement("option");
-    let optionCliente = document.createElement("option");
-
-    divOption.appendChild(labelTipo);
-    divOption.appendChild(selectTipo);
-
-    labelTipo.innerText = "Tipo: ";
-    selectTipo.setAttribute("id", "abm-tipo");
-
-    optionEmpleado.value = "Empleado";
-    optionEmpleado.innerText = "Empleado";
-
-    optionCliente.value = "Cliente";
-    optionCliente.innerText = "Cliente";
-
-    selectTipo.appendChild(optionEmpleado);
-    selectTipo.appendChild(optionCliente);
-
-    // Añadir evento para mostrar campos específicos
-    selectTipo.addEventListener("change", function () {
-      if (selectTipo.value === "Empleado") {
-        mostrarCamposEmpleado();
-      } else {
-        mostrarCamposCliente();
-      }
-    });
-    // $("divFormAbm").insertBefore(selectTipo, divFormAbm.firstChild);
-    $("divFormAbm").prepend(divOption);
-    // $("divFormAbm").insertBefore(labelTipo, selectTipo);
   }
 }
 // EVENTOS
 function cargarEventos() {
-  const abmAceptar = $("abmAceptar");
-  const abmCancelar = $("abmCancelar");
-  const btnAgregar = $("btnAgregar");
-  const btnMod = q(".t-btn-modificar");
-  const btnEli = q(".t-btn-eliminar");
-  $("abm-id").setAttribute("disabled", "true");
+  setTimeout(() => {
+    const abmAceptar = $("abmAceptar");
+    const abmCancelar = $("abmCancelar");
+    const btnAgregar = $("btnAgregar");
+    const btnMod = q(".t-btn-modificar");
+    const btnEli = q(".t-btn-eliminar");
+    $("abm-id").setAttribute("disabled", "true");
 
-  // ABM ALTA
-  btnAgregar.addEventListener("click", function () {
-    limpiarEventos();
-    $("tituloABM").innerText = "ALTA";
-    let inputs = q(".abm-input");
-    inputs.forEach((e) => (e.value = ""));
-    mostrarCamposEmpleado();
-    mostrarDivAbm();
-    ocultarDivTabla();
-    crearSelect();
-    abmAceptar.addEventListener("click", abmAlta);
-  });
-
-  // ABM MODIFICACION
-  for (let i = 0; i < btnMod.length; i++) {
-    btnMod[i].addEventListener("click", function () {
+    // ABM ALTA
+    btnAgregar.addEventListener("click", function () {
       limpiarEventos();
-      if ($("divOption")) $("divOption").innerHTML = "";
-      $("tituloABM").innerText = "MODIFICAR";
-      if (listado[i] instanceof Cliente) mostrarCamposCliente();
-      else if (listado[i] instanceof Empleado) mostrarCamposEmpleado();
+      $("tituloABM").innerText = "ALTA";
+      let inputs = q(".abm-input");
+      inputs.forEach((e) => (e.value = ""));
+      mostrarCamposCiudadano();
       mostrarDivAbm();
       ocultarDivTabla();
-      cargarAbm(i);
-      abmAceptar.addEventListener("click", abmModificacion);
+      crearSelect();
+      abmAceptar.addEventListener("click", abmAltaAsync);
     });
-  }
 
-  // ABM ELIMINAR
-  for (let i = 0; i < btnEli.length; i++) {
-    btnEli[i].addEventListener("click", function () {
-      limpiarEventos();
-      if ($("divOption")) $("divOption").innerHTML = "";
-      $("tituloABM").innerText = "ELIMINAR";
-      if (listado[i] instanceof Cliente) mostrarCamposCliente();
-      else if (listado[i] instanceof Empleado) mostrarCamposEmpleado();
-      mostrarDivAbm();
-      ocultarDivTabla();
-      cargarAbm(i);
-      abmAceptar.addEventListener("click", abmBaja);
+    // ABM MODIFICACION
+    for (let i = 0; i < btnMod.length; i++) {
+      btnMod[i].addEventListener("click", function () {
+        limpiarEventos();
+        if ($("divOption")) $("divOption").innerHTML = "";
+        $("tituloABM").innerText = "MODIFICAR";
+        if (listado[i] instanceof Extranjero) mostrarCamposExtranjero();
+        else if (listado[i] instanceof Ciudadano) mostrarCamposCiudadano();
+        mostrarDivAbm();
+        ocultarDivTabla();
+        cargarAbm(i);
+        abmAceptar.addEventListener("click", abmModificacionPromesas);
+      });
+    }
+
+    // ABM ELIMINAR
+    for (let i = 0; i < btnEli.length; i++) {
+      btnEli[i].addEventListener("click", function () {
+        limpiarEventos();
+        if ($("divOption")) $("divOption").innerHTML = "";
+        $("tituloABM").innerText = "ELIMINAR";
+        if (listado[i] instanceof Extranjero) mostrarCamposExtranjero();
+        else if (listado[i] instanceof Ciudadano) mostrarCamposCiudadano();
+        mostrarDivAbm();
+        ocultarDivTabla();
+        cargarAbm(i);
+        abmAceptar.addEventListener("click", abmBaja);
+      });
+    }
+
+    // OCULTAR FORM ABM CON CANCELAR
+    abmCancelar.addEventListener("click", function () {
+      ocultarDivAbm();
+      mostrarDivTabla();
     });
-  }
-
-  // OCULTAR FORM ABM CON CANCELAR
-  abmCancelar.addEventListener("click", function () {
-    ocultarDivAbm();
-    mostrarDivTabla();
-  });
+  }, 1);
 }
 
 window.addEventListener("load", cargaInicial);
+//window.addEventListener("load", cargaInicialFetch);
+//window.addEventListener("load", cargaInicialAsync);
