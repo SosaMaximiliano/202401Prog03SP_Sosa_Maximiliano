@@ -589,6 +589,7 @@ function abmAltaHttp() {
 //ABM ALTA ASYNC
 async function abmAltaAsync() {
   mostrarSpinner();
+  limpiarEventos();
 
   let nombre = $("abm-nombre").value;
   let apellido = $("abm-apellido").value;
@@ -662,7 +663,6 @@ async function abmAltaAsync() {
   }
 }
 
-//USA METODO PUT PORQUE POST NO CONECTA
 async function abmModificacion() {
   mostrarSpinner();
   let objeto = {
@@ -779,7 +779,7 @@ function abmModificacionPromesas() {
         mostrarDivTabla();
       } else {
         ocultarSpinner();
-        alert("El objeto no se encuentra en la lista");
+        //alert("El objeto no se encuentra en la lista");
         resolve(false);
         ocultarDivAbm();
         mostrarDivTabla();
@@ -787,7 +787,6 @@ function abmModificacionPromesas() {
     } else {
       ocultarSpinner();
       alert("Validación fallida");
-      reject(new Error("Validación fallida"));
       ocultarDivAbm();
       mostrarDivTabla();
     }
@@ -851,14 +850,16 @@ function cargarEventos() {
     // ABM ALTA
     btnAgregar.addEventListener("click", function () {
       limpiarEventos();
-      $("tituloABM").innerText = "ALTA";
-      let inputs = q(".abm-input");
-      inputs.forEach((e) => (e.value = ""));
-      mostrarCamposCiudadano();
-      mostrarDivAbm();
-      ocultarDivTabla();
-      crearSelect();
-      abmAceptar.addEventListener("click", abmAltaAsync);
+      setTimeout(() => {
+        $("tituloABM").innerText = "ALTA";
+        let inputs = q(".abm-input");
+        inputs.forEach((e) => (e.value = ""));
+        mostrarCamposCiudadano();
+        mostrarDivAbm();
+        ocultarDivTabla();
+        crearSelect();
+        abmAceptar.addEventListener("click", abmAltaAsync);
+      }, 1);
     });
 
     // ABM MODIFICACION
